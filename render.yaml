@@ -2,7 +2,7 @@ services:
   - type: web
     name: instapostauto
     env: python
-    buildCommand: pip install -r requirements.txt && python -m playwright install chromium
+    buildCommand: pip install -r requirements.txt && python -m playwright install chromium --with-deps && python -m playwright install chrome --with-deps
     startCommand: python run.py
     healthCheckPath: /api/health
     envVars:
