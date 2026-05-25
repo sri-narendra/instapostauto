@@ -181,14 +181,19 @@ def _run_pipeline_now():
             stories = get_news(limit=120, shortlist=15, pick=1, min_score=40, min_comments=8)
             _pipeline_progress["stages_completed"].append("fetch")
             _pipeline_progress["stage"] = "generate"
-            outputs = create_posts(stories)
             _pipeline_progress["stages_completed"].append("generate")
+            _pipeline_progress["stage"] = "render"
+            outputs = create_posts(stories)
+            _pipeline_progress["stages_completed"].append("render")
             if outputs:
-                _pipeline_progress["stage"] = "render"
-                _pipeline_progress["stages_completed"].append("render")
                 _pipeline_progress["stage"] = "upload"
-                post_generated_outputs(outputs, caption="Top AI and tech stories from Hacker News.")
-                _pipeline_progress["stages_completed"].append("upload")
+                result = post_generated_outputs(outputs, caption="Top AI and tech stories from Hacker News.")
+                if result:
+                    _pipeline_progress["stages_completed"].append("upload")
+                else:
+                    _pipeline_progress["stage"] = "failed"
+                    _pipeline_progress["error"] = "Upload returned no result (see logs)"
+                    return
             _pipeline_progress["stage"] = "complete"
         except Exception as exc:
             _pipeline_progress["error"] = str(exc)
