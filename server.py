@@ -5,7 +5,6 @@ import os
 import threading
 import time
 from datetime import datetime, timezone, timedelta
-from http.server import HTTPServer, BaseHTTPRequestHandler
 from zoneinfo import ZoneInfo
 from typing import Optional
 
@@ -91,6 +90,7 @@ def _run_pipeline() -> None:
 
 
 def _scheduler_loop() -> None:
+    global _running
     while True:
         try:
             if not _running and _should_run():
@@ -102,40 +102,12 @@ def _scheduler_loop() -> None:
         time.sleep(30)
 
 
-class HealthHandler(BaseHTTPRequestHandler):
-    def do_GET(self) -> None:
-        if self.path == "/health":
-            next_run = _next_schedule()
-            self.send_response(200)
-            self.send_header("Content-Type", "application/json")
-            self.end_headers()
-            self.wfile.write(json.dumps({
-                "status": "ok",
-                "time": _now().isoformat(),
-                "timezone": TZ,
-                "last_run": _last_run_day,
-                "next_schedule": next_run,
-            }).encode())
-        else:
-            self.send_response(404)
-            self.end_headers()
-
-    def log_message(self, format: str, *args) -> None:
-        pass
-
-
 def main() -> None:
-    print(f"[{_now().isoformat()}] Starting InstaPostAuto on port {PORT}")
+    print(f"[{_now().isoformat()}] Starting scheduler (dashboard handles HTTP)")
     print(f"[{_now().isoformat()}] Timezone: {TZ}")
     print(f"[{_now().isoformat()}] Schedule: {json.dumps(SCHEDULE, indent=2)}")
 
     threading.Thread(target=_scheduler_loop, daemon=True).start()
-
-    server = HTTPServer(("0.0.0.0", PORT), HealthHandler)
-    try:
-        server.serve_forever()
-    except KeyboardInterrupt:
-        server.shutdown()
 
 
 if __name__ == "__main__":
