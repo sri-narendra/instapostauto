@@ -199,6 +199,8 @@ class ZernioMCPProvider(InstagramProvider):
                 post_id = post.get("id", post.get("_id", ""))
             msg = data.get("message", data.get("msg", str(data)[:200]))
             print(f"[instapost] Zernio post created — id={post_id} status={post_status}")
+            if post_status == "publishing":
+                print(f"[instapost] WARNING: Post stuck in publishing — full response: {str(data)[:500]}")
             return {
                 "status": post_status if post_status != "unknown" else "posted",
                 "media_count": len(media_urls),
@@ -212,7 +214,7 @@ class ZernioMCPProvider(InstagramProvider):
     def _create_reel_api(self, media_url: str, caption: str) -> dict:
         url = f"{API_BASE}/v1/posts"
         account_id = self._get_instagram_account_id()
-        platforms: list[dict[str, str]] = [{"platform": "instagram", "accountId": account_id}]
+        platforms: list[dict[str, Any]] = [{"platform": "instagram", "accountId": account_id, "platformSpecificData": {"contentType": "reels", "shareToFeed": True}}]
 
         payload: dict[str, Any] = {
             "content": caption,
@@ -244,6 +246,8 @@ class ZernioMCPProvider(InstagramProvider):
             post_id = post.get("id", post.get("_id", "")) if post else ""
             msg = data.get("message", data.get("msg", str(data)[:200]))
             print(f"[instapost] Zernio reel created — id={post_id} status={post_status}")
+            if post_status == "publishing":
+                print(f"[instapost] WARNING: Post stuck in publishing — full response: {str(data)[:500]}")
             return {
                 "status": post_status if post_status != "unknown" else "posted",
                 "media_count": 1,

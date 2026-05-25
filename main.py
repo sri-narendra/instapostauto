@@ -15,7 +15,7 @@ if DASHBOARD:
     print("[main] Dashboard started at http://localhost:5001")
 
 print("[main] Running pipeline...")
-stories = get_news(limit=40, shortlist=15, pick=1, min_score=40, min_comments=8)
+stories = get_news(limit=120, shortlist=15, pick=1, min_score=40, min_comments=8)
 outputs = create_posts(stories)
 if outputs:
     mark_generated(stories)
