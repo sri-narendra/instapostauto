@@ -30,6 +30,19 @@ def post_as_reel(image_paths: list[str], caption: str = ""):
     return upload_reel(video_path, caption=caption)
 
 
+def _cleanup_reel_video() -> None:
+    video_dir = Path("output/reels")
+    if not video_dir.exists():
+        return
+    for f in video_dir.iterdir():
+        try:
+            if f.is_file():
+                f.unlink()
+                print(f"  [cleanup] Removed reel file: {f.name}")
+        except OSError as exc:
+            print(f"  [cleanup] Could not remove {f}: {exc}")
+
+
 def _cleanup_outputs(output_urls: list[str]) -> None:
     removed_dirs: set[str] = set()
     for path in output_urls:
@@ -43,7 +56,10 @@ def _cleanup_outputs(output_urls: list[str]) -> None:
                         removed_dirs.add(parent)
         except OSError as exc:
             print(f"  [cleanup] Could not remove {path}: {exc}")
-    print(f"  [cleanup] Removed {len(output_urls)} local slide files")
+    if removed_dirs:
+        print(f"  [cleanup] Removed {len(output_urls)} local slide files and {len(removed_dirs)} empty dirs")
+    else:
+        print(f"  [cleanup] Removed {len(output_urls)} local slide files")
 
 
 def post_generated_outputs(
@@ -71,8 +87,10 @@ def post_generated_outputs(
             print(f"Uploading {len(output_paths)} images to Instagram...")
             result = post_to_instagram(output_paths, caption=caption)
             print("Instagram upload complete.")
-        _cleanup_outputs(output_paths)
         if result:
+            _cleanup_outputs(output_paths)
+            if as_reel:
+                _cleanup_reel_video()
             append_log({
                 "title": story_title or caption[:60],
                 "status": result.get("status", "posted"),

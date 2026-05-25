@@ -50,23 +50,24 @@ def render(html: str, design: dict, suffix: str = "", output_dir: str | None = N
         f.write(html)
 
     with sync_playwright() as p:
-        browser = p.chromium.launch()
+        browser = p.chromium.launch(
+            args=[
+                "--disable-dev-shm-usage",
+                "--no-sandbox",
+                "--disable-gpu",
+                "--disable-software-rasterizer",
+                "--js-flags=--max-old-space-size=128",
+            ]
+        )
         context = browser.new_context(
             viewport={"width": WIDTH, "height": HEIGHT},
-            device_scale_factor=2  # Higher DPI for sharper output
+            device_scale_factor=1.5
         )
         page = context.new_page()
         page.goto(f"file://{os.path.abspath(html_path)}")
 
-        # Wait for fonts and effects to load
-        page.wait_for_timeout(3500)
+        page.wait_for_timeout(1500)
 
-        # Set higher quality rendering
-        page.evaluate('''() => {
-            document.body.style.imageRendering = "pixelated";
-        }''')
-
-        # Take screenshot with GPU acceleration
         page.screenshot(
             path=path,
             full_page=False,
@@ -76,7 +77,6 @@ def render(html: str, design: dict, suffix: str = "", output_dir: str | None = N
 
         browser.close()
 
-    # Clean up tmp html
     try: os.remove(html_path)
     except: pass
 
@@ -85,8 +85,45 @@ def render(html: str, design: dict, suffix: str = "", output_dir: str | None = N
 
 def render_carousel(html_slides: list[str], design: dict, content_name: str = "") -> list[str]:
     run_dir = create_run_dir(content_name or design["title"])
-    return [
-        render(html, design, suffix=f"_{index:02d}", output_dir=run_dir)
-        for index, html in enumerate(html_slides, start=1)
-    ]
+    paths: list[str] = []
+    try:
+        from playwright.sync_api import sync_playwright
+    except ModuleNotFoundError as exc:
+        raise ModuleNotFoundError(
+            "Playwright is not available in this Python environment. "
+            "Install it for the Python you are running: "
+            "`python -m pip install playwright` then "
+            "`python -m playwright install chromium`."
+        ) from exc
+
+    with sync_playwright() as p:
+        browser = p.chromium.launch(
+            args=[
+                "--disable-dev-shm-usage",
+                "--no-sandbox",
+                "--disable-gpu",
+                "--disable-software-rasterizer",
+                "--js-flags=--max-old-space-size=128",
+            ]
+        )
+        context = browser.new_context(
+            viewport={"width": WIDTH, "height": HEIGHT},
+            device_scale_factor=1.5
+        )
+        for index, html in enumerate(html_slides, start=1):
+            suffix = f"_{index:02d}"
+            path = os.path.join(run_dir, f"slide{suffix}.png")
+            html_path = os.path.join(run_dir, f"_preview{suffix}.html")
+            with open(html_path, "w", encoding="utf-8") as f:
+                f.write(html)
+            page = context.new_page()
+            page.goto(f"file://{os.path.abspath(html_path)}")
+            page.wait_for_timeout(1500)
+            page.screenshot(path=path, full_page=False, type="png", animations="disabled")
+            page.close()
+            try: os.remove(html_path)
+            except: pass
+            paths.append(path)
+        browser.close()
+    return paths
 
