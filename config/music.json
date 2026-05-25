@@ -1,0 +1,32 @@
+[
+  {
+    "id": "synthetic",
+    "name": "Synthetic Ambient",
+    "description": "Procedurally generated ambient/electronic background music",
+    "type": "generated",
+    "selected": true
+  },
+  {
+    "id": "none",
+    "name": "No Music",
+    "description": "Post without background music",
+    "type": "silent",
+    "selected": false
+  },
+  {
+    "id": "chill_lo-fi",
+    "name": "Chill Lo-Fi",
+    "description": "Relaxed lo-fi hip hop vibes",
+    "type": "url",
+    "url": "",
+    "selected": false
+  },
+  {
+    "id": "upbeat_electronic",
+    "name": "Upbeat Electronic",
+    "description": "Energetic electronic beat",
+    "type": "url",
+    "url": "",
+    "selected": false
+  }
+]

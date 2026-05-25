@@ -1,0 +1,19 @@
+{
+  "stories": {
+    "48238896": {
+      "title": "Microsoft starts canceling Claude Code licenses",
+      "url": "https://www.theverge.com/tech/930447/microsoft-claude-code-discontinued-notepad",
+      "generated_at": 1779557818.2582233
+    },
+    "48248659": {
+      "title": "Ebola Outbreak Now Third Largest Recorded and \"Spreading Rapidly\"",
+      "url": "https://arstechnica.com/health/2026/05/ebola-outbreak-now-third-largest-recorded-and-spreading-rapidly/",
+      "generated_at": 1779558788.0513647
+    },
+    "48256953": {
+      "title": "DeepSeek reasonix, DeepSeek native coding agent with high caching and low cost",
+      "url": "https://esengine.github.io/DeepSeek-Reasonix/",
+      "generated_at": 1779692875.6619976
+    }
+  }
+}

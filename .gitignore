@@ -1,0 +1,9 @@
+__pycache__/
+*.pyc
+.env
+output/reels/*.mp4
+output/*/
+.palette_state.json
+*.log
+.DS_Store
+.superpowers/

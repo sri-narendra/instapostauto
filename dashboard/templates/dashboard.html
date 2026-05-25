@@ -1,0 +1,553 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Autopilot Ops Center</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root { --glass: rgba(255,255,255,0.03); --glass-border: rgba(255,255,255,0.06); --glass-hover: rgba(255,255,255,0.06); --accent: #8b5cf6; --accent2: #6366f1; --success: #10b981; --warn: #f59e0b; --error: #ef4444; --text: #e2e8f0; --dim: #64748b; }
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'Inter', system-ui, sans-serif; background: #07070d; color: var(--text); min-height: 100vh; }
+.glass { background: var(--glass); border: 1px solid var(--glass-border); border-radius: 12px; backdrop-filter: blur(12px); }
+.glass-hover:hover { background: var(--glass-hover); border-color: rgba(255,255,255,0.1); }
+.kpi-card { padding: 14px 16px; transition: all .2s; }
+.kpi-value { font-size: 26px; font-weight: 800; letter-spacing: -.02em; line-height: 1.2; }
+.kpi-label { font-size: 10px; font-weight: 500; text-transform: uppercase; letter-spacing: .08em; color: var(--dim); margin-bottom: 4px; }
+.kpi-trend { font-size: 10px; font-weight: 500; }
+.stage { padding: 8px 6px; border-radius: 8px; text-align: center; transition: all .3s; flex: 1; min-width: 0; }
+.stage-icon { font-size: 18px; margin-bottom: 2px; }
+.stage-label { font-size: 9px; font-weight: 600; text-transform: uppercase; letter-spacing: .05em; }
+.stage-status { font-size: 10px; margin-top: 2px; }
+.story-row { display: flex; align-items: center; padding: 8px 10px; border-bottom: 1px solid rgba(255,255,255,0.04); cursor: pointer; transition: background .15s; }
+.story-row:hover { background: rgba(255,255,255,0.03); }
+.story-row:last-child { border-bottom: none; }
+.story-score { font-size: 13px; font-weight: 700; min-width: 36px; text-align: center; }
+.btn { padding: 6px 14px; border-radius: 7px; font-size: 12px; font-weight: 600; border: none; cursor: pointer; transition: all .15s; display: inline-flex; align-items: center; gap: 5px; }
+.btn-primary { background: var(--accent); color: #fff; }
+.btn-primary:hover { background: #7c3aed; }
+.btn-ghost { background: rgba(255,255,255,0.06); color: var(--text); border: 1px solid rgba(255,255,255,0.1); }
+.btn-ghost:hover { background: rgba(255,255,255,0.1); }
+.btn-success { background: var(--success); color: #000; }
+.btn-success:hover { background: #059669; }
+.btn-error { background: var(--error); color: #fff; }
+select, input[type="checkbox"] { background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1); color: var(--text); padding: 5px 10px; border-radius: 6px; font-size: 12px; font-family: inherit; }
+select:focus { outline: none; border-color: var(--accent); }
+.log-line { font-family: 'JetBrains Mono', monospace; font-size: 11px; padding: 3px 8px; border-bottom: 1px solid rgba(255,255,255,0.03); }
+.log-line:last-child { border-bottom: none; }
+.control-group { margin-bottom: 12px; }
+.control-group:last-child { margin-bottom: 0; }
+.control-label { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: .06em; color: var(--dim); margin-bottom: 6px; }
+.music-option { display: flex; align-items: center; justify-content: space-between; padding: 7px 10px; border-radius: 8px; cursor: pointer; transition: all .15s; border: 1px solid transparent; }
+.music-option:hover { background: rgba(255,255,255,0.04); }
+.music-option.active { background: rgba(139,92,246,0.12); border-color: rgba(139,92,246,0.3); }
+.music-option .name { font-size: 12px; font-weight: 500; }
+.music-option .desc { font-size: 10px; color: var(--dim); }
+.chart-container { position: relative; height: 120px; width: 100%; }
+.dot-active { width: 6px; height: 6px; border-radius: 50%; display: inline-block; animation: pulse 2s infinite; }
+@keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: .4; } }
+@keyframes countUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+.counter-anim { animation: countUp .5s ease-out; }
+.countdown { font-variant-numeric: tabular-nums; }
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 4px; }
+.progress-ring { width: 100%; height: 4px; background: rgba(255,255,255,0.06); border-radius: 2px; overflow: hidden; }
+.progress-ring-fill { height: 100%; background: linear-gradient(90deg, var(--accent), var(--accent2)); border-radius: 2px; transition: width 1s ease; }
+.hidden { display: none; }
+.tab-btn { padding: 6px 14px; font-size: 11px; font-weight: 600; border-radius: 7px; cursor: pointer; transition: all .2s; border: none; color: var(--dim); background: transparent; }
+.tab-btn:hover { background: rgba(255,255,255,0.05); color: var(--text); }
+.tab-btn.active { background: rgba(139,92,246,0.15); color: var(--accent); }
+.grid-dashboard { display: grid; gap: 12px; max-width: 1440px; margin: 0 auto; padding: 12px; }
+@media (min-width: 1200px) { .grid-dashboard { grid-template-columns: 1fr 1fr 1fr; } .grid-2col { grid-template-columns: 1fr 1fr; } }
+.control-panel { display: grid; gap: 16px; }
+.control-section { padding: 12px; border-radius: 10px; background: rgba(0,0,0,0.15); border: 1px solid rgba(255,255,255,0.04); }
+</style>
+</head>
+<body>
+
+<div class="grid-dashboard" id="app">
+
+<div style="grid-column: 1 / -1; display: flex; justify-content: space-between; align-items: center; padding: 4px 0 0;">
+  <div style="display:flex;align-items:center;gap:12px;">
+    <span style="font-size:18px;font-weight:900;color:var(--accent);letter-spacing:-.03em;">⬡ AUTOPILOT</span>
+    <span class="dot-active" id="statusDot" style="background:var(--success);"></span>
+    <span id="statusText" style="font-size:11px;color:var(--success);font-weight:500;">SYSTEM HEALTHY</span>
+  </div>
+  <div style="display:flex;align-items:center;gap:16px;font-size:11px;color:var(--dim);">
+    <span id="headerTimezone"></span>
+    <span id="headerClock"></span>
+    <span id="headerCountdown" class="countdown"></span>
+  </div>
+</div>
+
+<div style="grid-column: 1 / -1; display: grid; gap: 8px;" class="grid-2col" id="kpiGrid">
+  <template id="kpiTemplate">
+    <div class="glass kpi-card">
+      <div class="kpi-label"></div>
+      <div class="kpi-value" style="color:var(--success);"></div>
+      <div class="kpi-trend"></div>
+    </div>
+  </template>
+</div>
+
+<div class="glass" style="grid-column: 1 / -1; padding: 14px;">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+    <span style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--dim);"><i class="fas fa-bolt" style="margin-right:6px;color:var(--accent);"></i>LIVE PIPELINE</span>
+    <span id="pipelineDuration" style="font-size:10px;color:var(--dim);"></span>
+  </div>
+  <div id="pipelineStages" style="display:flex;gap:6px;"></div>
+</div>
+
+<div class="glass" style="grid-column: 1 / -1; padding: 14px;">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+    <span style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--dim);"><i class="fas fa-sliders-h" style="margin-right:6px;color:var(--accent);"></i>CONTROLS & PREVIEW</span>
+    <div style="display:flex;gap:6px;">
+      <button class="btn btn-success" id="triggerBtn" onclick="triggerPipeline()"><i class="fas fa-play"></i> POST NOW</button>
+      <button class="btn btn-ghost" id="pauseBtn" onclick="togglePause()"><i class="fas fa-pause"></i> PAUSE SCHEDULE</button>
+    </div>
+  </div>
+  <div style="display:grid;grid-template-columns:1.5fr 1fr;gap:12px;">
+    <div>
+      <div class="control-section">
+        <div class="control-label">Theme Override</div>
+        <select id="themeSelect" onchange="saveConfig({theme_override:this.value||null})" style="width:100%;">
+          <option value="">Auto (rotate)</option>
+          {% for t in themes %}<option value="{{ t }}">{{ t }}</option>{% endfor %}
+        </select>
+      </div>
+      <div class="control-section">
+        <div class="control-label">Layout Override</div>
+        <select id="layoutSelect" onchange="saveConfig({layout_override:this.value||null})" style="width:100%;">
+          <option value="">Auto</option>
+          {% for l in layouts %}<option value="{{ l }}">{{ l }}</option>{% endfor %}
+        </select>
+      </div>
+      <div class="control-section">
+        <div class="control-label">Post Type</div>
+        <label style="display:flex;align-items:center;gap:8px;font-size:12px;cursor:pointer;">
+          <input type="checkbox" id="reelToggle" onchange="saveConfig({post_as_reel:this.checked})" {% if config.get('post_as_reel',True) %}checked{% endif %}>
+          Post as Reel (uncheck = Carousel)
+        </label>
+      </div>
+    </div>
+    <div>
+      <div style="background:rgba(0,0,0,0.3);border-radius:10px;padding:10px;text-align:center;">
+        <div class="control-label" style="margin-bottom:6px;">Latest Reel</div>
+        <div id="reelPreview">
+          <div style="width:100%;aspect-ratio:9/16;max-height:220px;background:linear-gradient(135deg,#1e1b4b,#312e81);border-radius:8px;display:flex;align-items:center;justify-content:center;margin:0 auto;">
+            <i class="fas fa-play-circle" style="font-size:40px;color:rgba(255,255,255,0.3);cursor:pointer;" onclick="playReel()"></i>
+          </div>
+        </div>
+        <div id="reelInfo" style="font-size:10px;color:var(--dim);margin-top:6px;"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="glass" style="grid-column: 1 / -1; padding: 14px;">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+    <span style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--dim);"><i class="fas fa-music" style="margin-right:6px;color:var(--accent);"></i>MUSIC SELECTION</span>
+  </div>
+  <div id="musicList" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:6px;">
+    {% for m in music %}
+    <div class="music-option{% if m.selected %} active{% endif %}" data-id="{{ m.id }}" onclick="selectMusic('{{ m.id }}')">
+      <div>
+        <div class="name">{{ m.name }} <span style="font-size:9px;color:var(--dim);text-transform:uppercase;">{{ m.type }}</span></div>
+        <div class="desc">{{ m.description }}</div>
+      </div>
+      <div>{% if m.selected %}<i class="fas fa-check-circle" style="color:var(--accent);"></i>{% endif %}</div>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+
+<div class="glass" style="grid-column: 1 / -1; padding: 14px;">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+    <span style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--dim);"><i class="fas fa-newspaper" style="margin-right:6px;color:var(--accent);"></i>STORY INTELLIGENCE</span>
+    <span id="storyCount" style="font-size:10px;color:var(--dim);">0 stories</span>
+  </div>
+  <div id="storyList" style="max-height:260px;overflow-y:auto;"></div>
+</div>
+
+<div style="grid-column: 1 / -1; display: grid; gap: 12px; grid-template-columns: 1fr 1fr;">
+  <div class="glass" style="padding: 14px;">
+    <span style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--dim);margin-bottom:10px;display:block;"><i class="fas fa-chart-line" style="margin-right:6px;color:var(--accent);"></i>POSTS PER DAY</span>
+    <div class="chart-container"><canvas id="postsChart"></canvas></div>
+  </div>
+  <div class="glass" style="padding: 14px;">
+    <span style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--dim);margin-bottom:10px;display:block;"><i class="fas fa-history" style="margin-right:6px;color:var(--accent);"></i>ACTIVITY FEED</span>
+    <div id="activityFeed" style="max-height:140px;overflow-y:auto;"></div>
+  </div>
+</div>
+
+<div class="glass" style="grid-column: 1 / -1; padding: 14px;">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+    <span style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--dim);"><i class="fas fa-clock" style="margin-right:6px;color:var(--accent);"></i>SCHEDULE</span>
+  </div>
+  <div id="scheduleView" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:6px;"></div>
+</div>
+
+<div class="glass" style="grid-column: 1 / -1; padding: 14px;">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+    <span style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--dim);"><i class="fas fa-exclamation-triangle" style="margin-right:6px;color:var(--error);"></i>ERROR CONSOLE</span>
+    <span id="errorCount" style="font-size:10px;color:var(--dim);">0 errors</span>
+  </div>
+  <div id="errorList" style="max-height:140px;overflow-y:auto;"></div>
+</div>
+
+<div class="glass" style="grid-column: 1 / -1; padding: 14px;">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+    <span style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--dim);"><i class="fas fa-folder" style="margin-right:6px;color:var(--accent);"></i>ASSET EXPLORER</span>
+  </div>
+  <div id="assetList" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:6px;"></div>
+</div>
+
+<div class="glass" style="grid-column: 1 / -1; padding: 10px 14px; display:flex;justify-content:space-between;align-items:center;">
+  <span style="font-size:10px;color:var(--dim);">⬡ AUTOPILOT OPS CENTER v1.0</span>
+  <span style="font-size:10px;color:var(--dim);">Last updated: <span id="lastUpdated">--</span></span>
+</div>
+
+</div>
+
+<script>
+const state = { metrics: {}, schedule: {}, stories: [], posts: [], reel: {}, errors: [], assets: [], music: [], config: {} };
+let postsChart = null;
+
+function $(id) { return document.getElementById(id); }
+
+const KPI_DEFS = [
+  {key:'total_reels',label:'Reels Generated',icon:'fa-film',color:'var(--success)'},
+  {key:'total_published',label:'Posts Published',icon:'fa-instagram',color:'var(--accent)'},
+  {key:'failed_posts',label:'Failed',icon:'fa-exclamation-circle',color:'var(--error)'},
+  {key:'success_rate',label:'Success Rate',icon:'fa-check-circle',color:'var(--success)',suffix:'%'},
+  {key:'queue_size',label:'Queue',icon:'fa-layer-group',color:'var(--warn)'},
+  {key:'current_theme',label:'Current Theme',icon:'fa-palette',color:'var(--accent2)'},
+];
+
+function initKPI() {
+  const grid = $('kpiGrid');
+  grid.innerHTML = '';
+  KPI_DEFS.forEach(def => {
+    const div = document.createElement('div');
+    div.className = 'glass kpi-card';
+    div.id = 'kpi-' + def.key;
+    div.innerHTML = `
+      <div class="kpi-label"><i class="fas ${def.icon}" style="margin-right:4px;"></i>${def.label}</div>
+      <div class="kpi-value" style="color:${def.color};" id="kpiVal-${def.key}">--</div>
+      <div class="kpi-trend" id="kpiTrend-${def.key}"></div>
+    `;
+    grid.appendChild(div);
+  });
+}
+
+function updateKPI(data) {
+  KPI_DEFS.forEach(def => {
+    let val = data[def.key];
+    if (val === undefined || val === null) val = '--';
+    const el = $('kpiVal-' + def.key);
+    const suffix = def.suffix || '';
+    if (typeof val === 'number') {
+      el.textContent = val.toLocaleString() + suffix;
+    } else {
+      el.textContent = val + suffix;
+    }
+  });
+  $('statusDot').style.background = data.failed_posts > 0 ? 'var(--error)' : 'var(--success)';
+  $('statusText').textContent = data.failed_posts > 0 ? `${data.failed_posts} FAILURES` : 'SYSTEM HEALTHY';
+  $('statusText').style.color = data.failed_posts > 0 ? 'var(--error)' : 'var(--success)';
+  $('pauseBtn').innerHTML = data.schedule_enabled ? '<i class="fas fa-pause"></i> PAUSE SCHEDULE' : '<i class="fas fa-play"></i> RESUME SCHEDULE';
+}
+
+let _prevPipelineActive = false;
+function updatePipeline(data) {
+  const stages = data.stages || ['fetch','filter','score','generate','render','upload'];
+  const labels = {fetch:'FETCH NEWS',filter:'FILTER',score:'SCORE',generate:'GENERATE',render:'RENDER',upload:'UPLOAD'};
+  const icons = {fetch:'fa-download',filter:'fa-filter',score:'fa-fire',generate:'fa-magic',render:'fa-film',upload:'fa-cloud-upload-alt'};
+  const stageStatuses = data.stages_completed || [];
+  const currentStage = data.stage;
+  const isActive = data.active;
+  const error = data.error;
+
+  const container = $('pipelineStages');
+  let html = '';
+  stages.forEach(s => {
+    const completed = stageStatuses.includes(s);
+    const isCurrent = s === currentStage && isActive;
+    const failed = s === 'failed' || (error && s === currentStage);
+    let bg, border, textColor, statusText;
+    if (completed) {
+      bg = 'rgba(16,185,129,0.15)'; border = 'rgba(16,185,129,0.3)'; textColor = 'var(--success)'; statusText = '✓ done';
+    } else if (isCurrent) {
+      bg = 'rgba(245,158,11,0.15)'; border = 'rgba(245,158,11,0.3)'; textColor = 'var(--warn)'; statusText = '● processing...';
+    } else if (error) {
+      bg = 'rgba(239,68,68,0.12)'; border = 'rgba(239,68,68,0.25)'; textColor = 'var(--error)'; statusText = '✗ failed';
+    } else {
+      bg = 'rgba(99,102,241,0.08)'; border = 'rgba(99,102,241,0.12)'; textColor = 'var(--dim)'; statusText = '○ idle';
+    }
+    html += `<div class="stage" style="background:${bg};border:1px solid ${border};">
+      <div class="stage-icon"><i class="fas ${icons[s] || 'fa-circle'}" style="color:${textColor};"></i></div>
+      <div class="stage-label" style="color:${textColor};">${labels[s] || s}</div>
+      <div class="stage-status" style="color:${textColor};">${statusText}</div>
+    </div>`;
+  });
+  if (error) html += `<div style="grid-column:1/-1;color:var(--error);font-size:10px;margin-top:4px;"><i class="fas fa-exclamation-circle"></i> ${error}</div>`;
+  container.innerHTML = html;
+  if (isActive !== _prevPipelineActive) {
+    _prevPipelineActive = isActive;
+    if (isActive) {
+      $('triggerBtn').innerHTML = '<i class="fas fa-spinner fa-pulse"></i> RUNNING...';
+      $('triggerBtn').disabled = true;
+      $('triggerBtn').className = 'btn btn-ghost';
+    } else {
+      $('triggerBtn').innerHTML = '<i class="fas fa-play"></i> POST NOW';
+      $('triggerBtn').disabled = false;
+      $('triggerBtn').className = 'btn btn-success';
+    }
+  }
+}
+
+function updateSchedule(sched) {
+  const container = $('scheduleView');
+  const days = ['monday','tuesday','wednesday','thursday','friday','saturday','sunday'];
+  const dayLabels = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+  const scheduleData = sched.schedule || {};
+  let html = '';
+  days.forEach((d, i) => {
+    const time = scheduleData[d];
+    const isNext = sched.next && sched.next.day === d;
+    html += `<div style="background:${isNext?'rgba(139,92,246,0.12)':'rgba(0,0,0,0.15)'};border:1px solid ${isNext?'rgba(139,92,246,0.3)':'rgba(255,255,255,0.04)'};border-radius:8px;padding:8px 10px;text-align:center;">
+      <div style="font-size:10px;font-weight:600;color:${isNext?'var(--accent)':'var(--dim)'};">${dayLabels[i]}</div>
+      <div style="font-size:13px;font-weight:700;margin-top:2px;">${time || '--'}</div>
+      ${isNext ? '<div style="font-size:9px;color:var(--accent);margin-top:2px;">⬤ NEXT</div>' : ''}
+    </div>`;
+  });
+  container.innerHTML = html;
+  if (sched.next) {
+    $('headerCountdown').textContent = 'NEXT: ' + sched.next.time.slice(11, 16);
+  } else {
+    $('headerCountdown').textContent = '';
+  }
+}
+
+function updateStories(stories) {
+  const container = $('storyList');
+  $('storyCount').textContent = stories.length + ' stories';
+  container.innerHTML = stories.map(s => `
+    <div class="story-row">
+      <div style="flex:1;font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${s.title || 'Untitled'}</div>
+      <div style="font-size:10px;color:var(--dim);margin-left:8px;">${s.generated_at ? new Date(s.generated_at*1000).toLocaleDateString() : ''}</div>
+    </div>
+  `).join('');
+}
+
+function updatePosts(posts) {
+  const feed = $('activityFeed');
+  const recent = posts.slice(0, 15);
+  feed.innerHTML = recent.map(p => {
+    const status = p.status || 'unknown';
+    const color = status === 'posted' || status === 'published' ? 'var(--success)' : status === 'failed' || status === 'error' ? 'var(--error)' : 'var(--warn)';
+    const icon = status === 'posted' || status === 'published' ? 'fa-check-circle' : status === 'failed' || status === 'error' ? 'fa-times-circle' : 'fa-spinner';
+    return `<div class="log-line" style="display:flex;justify-content:space-between;">
+      <span><i class="fas ${icon}" style="color:${color};margin-right:6px;"></i>${(p.title||'Post')}</span>
+      <span style="color:var(--dim);">${(p.time||'').slice(11,19)}</span>
+    </div>`;
+  }).join('');
+}
+
+function updateErrors(errors) {
+  const container = $('errorList');
+  $('errorCount').textContent = errors.length + ' errors';
+  container.innerHTML = errors.length ? errors.map(e => `
+    <div class="log-line" style="color:var(--error);">
+      <i class="fas fa-exclamation-circle" style="margin-right:6px;"></i>
+      ${e.title || 'Unknown error'} <span style="color:var(--dim);">${(e.time||'').slice(11,19)||''}</span>
+    </div>
+  `).join('') : '<div class="log-line" style="color:var(--success);"><i class="fas fa-check-circle" style="margin-right:6px;"></i>No errors</div>';
+}
+
+let _prevReelExists = null;
+function updateReel(reel) {
+  const container = $('reelPreview');
+  const info = $('reelInfo');
+  const exists = reel && reel.exists;
+  if (exists === _prevReelExists && exists) return;
+  _prevReelExists = exists;
+  if (exists) {
+    container.innerHTML = `<video id="reelVideo" style="width:100%;aspect-ratio:9/16;max-height:220px;border-radius:8px;background:#000;" controls autoplay playsinline preload="auto">
+      <source src="/api/reel/preview?t=${Date.now()}" type="video/mp4">
+    </video>`;
+    info.textContent = `Reel • ${reel.size_mb || 0}MB • ${reel.modified ? new Date(reel.modified).toLocaleString() : ''}`;
+  } else {
+    container.innerHTML = `<div style="width:100%;aspect-ratio:9/16;max-height:220px;background:linear-gradient(135deg,#1e1b4b,#312e81);border-radius:8px;display:flex;align-items:center;justify-content:center;">
+      <div style="text-align:center;"><i class="fas fa-video" style="font-size:28px;color:rgba(255,255,255,0.15);display:block;margin-bottom:6px;"></i><span style="font-size:10px;color:var(--dim);">No reel yet</span></div>
+    </div>`;
+    info.textContent = '';
+  }
+}
+
+function updateAssets(assets) {
+  const container = $('assetList');
+  container.innerHTML = assets.slice(0, 12).map(a => `
+    <div class="music-option" style="cursor:default;" onclick=${a.type === 'file' ? `window.open('/api/assets/download?path=${encodeURIComponent(a.path)}','_blank')` : ''}>
+      <div>
+        <div class="name"><i class="fas ${a.type === 'dir' ? 'fa-folder' : 'fa-file'}" style="margin-right:4px;color:${a.type === 'dir' ? 'var(--warn)' : 'var(--dim)'};"></i>${a.name}</div>
+        <div class="desc">${a.type === 'dir' ? a.count + ' files' : a.size_kb + ' KB'}</div>
+      </div>
+    </div>
+  `).join('');
+}
+
+function updateMusic(music) {
+  const container = $('musicList');
+  if (!music || !music.length) return;
+  container.innerHTML = music.map(m => `
+    <div class="music-option${m.selected ? ' active' : ''}" data-id="${m.id}" onclick="selectMusic('${m.id}')">
+      <div>
+        <div class="name">${m.name} <span style="font-size:9px;color:var(--dim);text-transform:uppercase;">${m.type}</span></div>
+        <div class="desc">${m.description || ''}</div>
+      </div>
+      <div>${m.selected ? '<i class="fas fa-check-circle" style="color:var(--accent);"></i>' : ''}</div>
+    </div>
+  `).join('');
+}
+
+function updateControls(config) {
+  if (config.theme_override) $('themeSelect').value = config.theme_override;
+  if (config.layout_override) $('layoutSelect').value = config.layout_override;
+  $('reelToggle').checked = config.post_as_reel !== false;
+}
+
+function updateCharts(data) {
+  if (!postsChart) {
+    const ctx = document.getElementById('postsChart').getContext('2d');
+    postsChart = new Chart(ctx, {
+      type: 'bar',
+      data: { labels: [], datasets: [{ label: 'Posts', data: [], backgroundColor: 'rgba(139,92,246,0.6)', borderColor: 'rgba(139,92,246,1)', borderWidth: 1, borderRadius: 3 }] },
+      options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } },
+        scales: { x: { grid: { color: 'rgba(255,255,255,0.03)' }, ticks: { color: '#64748b', font: { size: 9 } } },
+          y: { grid: { color: 'rgba(255,255,255,0.03)' }, ticks: { color: '#64748b', font: { size: 9 }, stepSize: 1 } } } }
+    });
+  }
+  const days = data.map(d => d.date.slice(5));
+  const counts = data.map(d => d.count);
+  postsChart.data.labels = days;
+  postsChart.data.datasets[0].data = counts;
+  postsChart.update('none');
+}
+
+function selectMusic(id) {
+  fetch('/api/music', {method:'POST', body:JSON.stringify({id}), headers:{'Content-Type':'application/json'}})
+    .then(r=>r.json()).then(() => { updateMusic(state.music.map(m => ({...m, selected: m.id === id}))); });
+}
+
+function saveConfig(data) {
+  fetch('/api/config', {method:'POST', body:JSON.stringify(data), headers:{'Content-Type':'application/json'}});
+}
+
+function triggerPipeline() {
+  const btn = $('triggerBtn');
+  if (btn.disabled) return;
+  fetch('/api/trigger', {method:'POST'}).then(r=>r.json()).then(d => {
+    if (d.ok) {
+      $('headerCountdown').textContent = 'PIPELINE STARTED!';
+      $('pipelineDuration').textContent = 'Running pipeline...';
+    }
+  });
+}
+
+function togglePause() {
+  const paused = state.metrics && !state.metrics.schedule_enabled;
+  const ep = paused ? '/api/resume' : '/api/pause';
+  fetch(ep, {method:'POST'}).then(r=>r.json()).then(d => { state.metrics.schedule_enabled = !paused; updateKPI(state.metrics); });
+}
+
+function playReel() {
+  const vid = $('reelVideo');
+  if (vid) vid.play();
+}
+
+function fetchAll() {
+  return fetch('/api/metrics').then(r=>r.json()).then(d => { state.metrics = d; updateKPI(d); });
+}
+
+let sseConnected = false;
+function connectSSE() {
+  const es = new EventSource('/api/events');
+  es.onmessage = (e) => {
+    try {
+      const d = JSON.parse(e.data);
+      state.metrics = d.metrics || state.metrics;
+      state.posts = d.posts || state.posts;
+      state.stories = d.stories || state.stories;
+      state.reel = d.reel || state.reel;
+      state.errors = d.errors || state.errors;
+      state.assets = d.assets || state.assets;
+      state.schedule = d.schedule || state.schedule;
+      state.config = d.config || state.config;
+      state.music = d.music || state.music;
+
+      updateKPI(state.metrics);
+      updatePipeline(d.pipeline || state.pipeline || {stages:['fetch','filter','score','generate','render','upload']});
+      updateSchedule(state.schedule);
+      updateStories(state.stories);
+      updatePosts(state.posts);
+      updateReel(state.reel);
+      updateErrors(state.errors);
+      updateAssets(state.assets);
+      updateMusic(state.music);
+      updateControls(state.config);
+      $('lastUpdated').textContent = new Date().toLocaleTimeString();
+
+      const schedNext = state.schedule.next;
+      if (schedNext) {
+        $('headerCountdown').textContent = `NEXT: ${schedNext.day} ${schedNext.time.slice(11,16)} (${formatCountdown(schedNext.seconds_until)})`;
+      }
+
+      if (state.posts.length >= 2) {
+        const daily = {};
+        state.posts.forEach(p => {
+          const d = (p.time || '').slice(0, 10);
+          if (d) daily[d] = (daily[d] || 0) + 1;
+        });
+        updateCharts(Object.entries(daily).map(([date, count]) => ({ date, count })));
+      }
+    } catch(err) {}
+  };
+  es.onerror = () => { setTimeout(connectSSE, 2000); };
+}
+
+function formatCountdown(secs) {
+  if (!secs || secs < 0) return '';
+  const h = Math.floor(secs / 3600);
+  const m = Math.floor((secs % 3600) / 60);
+  const s = secs % 60;
+  return `${h}h ${m}m ${s}s`;
+}
+
+function updateClock() {
+  const now = new Date();
+  $('headerClock').textContent = now.toLocaleTimeString();
+  $('headerTimezone').textContent = '{{ config.get("timezone") or "Asia/Kolkata" }}';
+}
+
+initKPI();
+fetchAll();
+updatePipeline({stages:['fetch','filter','score','generate','render','upload'], active:false});
+updateSchedule({ schedule: {{ SCHEDULE | tojson }}, next: null });
+connectSSE();
+setInterval(updateClock, 1000);
+updateClock();
+
+document.querySelectorAll('.tab-btn').forEach(btn => {
+  btn.addEventListener('click', function() {
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    this.classList.add('active');
+  });
+});
+</script>
+</body>
+</html>
