@@ -20,8 +20,8 @@ def post_as_reel(image_paths: list[str], caption: str = ""):
 
     music = get_selected_music()
     music_type = (music or {}).get("id", "synthetic")
-    generate_audio = music_type == "synthetic"
     audio_path = music.get("url") if music_type == "url" and music.get("url") else None
+    generate_audio = audio_path is None
 
     print(f"Creating reel video from {len(image_paths)} slides (music: {music_type})...")
     images_to_video(image_paths, video_path, audio_path=audio_path, generate_audio=generate_audio)

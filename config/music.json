@@ -7,13 +7,6 @@
     "selected": true
   },
   {
-    "id": "none",
-    "name": "No Music",
-    "description": "Post without background music",
-    "type": "silent",
-    "selected": false
-  },
-  {
     "id": "chill_lo-fi",
     "name": "Chill Lo-Fi",
     "description": "Relaxed lo-fi hip hop vibes",
